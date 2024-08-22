@@ -47,6 +47,7 @@ def main(ont, layer):
   np.save('../preds/{}-{}-test.npy'.format(layer, ont), preds_test)
 
   del model
+  del X_train, X_val, X_test, y_train, y_val, y_test
   gc.collect()
 
 

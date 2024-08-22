@@ -11,9 +11,9 @@ from evaluate import *
 
 def main(ont):
 
-  train = pd.read_csv('../../base/{}_train.csv'.format(ont))
-  val = pd.read_csv('../../base/{}_val.csv'.format(ont))
-  test = pd.read_csv('../../base/{}_test.csv'.format(ont))
+  train = pd.read_csv('../base/{}_train.csv'.format(ont))
+  val = pd.read_csv('../base/{}_val.csv'.format(ont))
+  test = pd.read_csv('../base/{}_test.csv'.format(ont))
   y_train = train.iloc[:, 2:].values
   nlabels = y_train.shape[1]
 
@@ -21,16 +21,16 @@ def main(ont):
   seq_val = preprocess(val, 'val')
   seq_test = preprocess(test, 'test')
 
-  with open('../../base/reference-{}.fasta'.format(ont), 'w') as f:
+  with open('../base/reference-{}.fasta'.format(ont), 'w') as f:
     print(seq_train, file=f)
 
-  with open('../../base/queries-{}-val.fasta'.format(ont), 'w') as f:
+  with open('../base/queries-{}-val.fasta'.format(ont), 'w') as f:
     print(seq_val, file=f)
 
-  with open('../../base/queries-{}-test.fasta'.format(ont), 'w') as f:
+  with open('../base/queries-{}-test.fasta'.format(ont), 'w') as f:
     print(seq_test, file=f)
 
-  os.system('../../diamond makedb --in "../../base/reference-{}.fasta" -d ../../base/reference-{}'.format(ont, ont))
+  os.system('../diamond makedb --in "../base/reference-{}.fasta" -d ../base/reference-{}'.format(ont, ont))
 
   run_diamond('val', ont, nlabels, y_train)
   run_diamond('test', ont, nlabels, y_train)
@@ -39,7 +39,7 @@ def run_diamond(data_type, ont, nlabels, y_train):
   seq = {}
   s=''
   k=''
-  with open('../../base/queries-{}-{}.fasta'.format(ont, data_type), "r") as f:
+  with open('../base/queries-{}-{}.fasta'.format(ont, data_type), "r") as f:
     for lines in f:
       if lines[0]==">":
         if s!='':
@@ -50,7 +50,7 @@ def run_diamond(data_type, ont, nlabels, y_train):
         s+=lines.strip('\n')
   seq[k] = s
 
-  output = os.popen("../../diamond blastp -d ../../base/reference-{}.dmnd -q ../../base/queries-{}-{}.fasta --outfmt 6 qseqid sseqid bitscore -e 0.001".format(ont, ont, data_type)).readlines()
+  output = os.popen("../diamond blastp -d ../base/reference-{}.dmnd -q ../base/queries-{}-{}.fasta --outfmt 6 qseqid sseqid bitscore -e 0.001".format(ont, ont, data_type)).readlines()
 
   test_bits={}
   test_train={}
@@ -82,7 +82,7 @@ def run_diamond(data_type, ont, nlabels, y_train):
     preds_score.append(probs)
 
   preds_score = np.array(preds_score)
-  np.save('../../preds/diamond-{}-{}.npy'.format(ont, data_type), preds_score)
+  np.save('../preds/diamond-{}-{}.npy'.format(ont, data_type), preds_score)
 
 def preprocess(df, mode):
   seq = df.sequence.values

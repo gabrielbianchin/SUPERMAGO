@@ -14,9 +14,9 @@ import click
 
 def main(model_name, ont):
 
-  train = preprocess(df=pd.read_csv('../../base/{}_train.csv'.format(ont)))
-  val = preprocess(df=pd.read_csv('../../base/{}_val.csv'.format(ont)))
-  test = preprocess(df=pd.read_csv('../../base/{}_test.csv'.format(ont)))
+  train = preprocess(df=pd.read_csv('../base/{}_train.csv'.format(ont)))
+  val = preprocess(df=pd.read_csv('../base/{}_val.csv'.format(ont)))
+  test = preprocess(df=pd.read_csv('../base/{}_test.csv'.format(ont)))
   device = torch.device("cuda:0")
   
   if model_name == 'esm':
@@ -57,17 +57,17 @@ def process_data(data, tokenizer, model, device, embed_size, ont, data_type, mod
     torch.cuda.empty_cache()
     
   if model_name == 'esm':
-    np.save('../../embs/36-{}-{}.npy'.format(ont, data_type), layer_1)
-    np.save('../../embs/35-{}-{}.npy'.format(ont, data_type), layer_2)
-    np.save('../../embs/34-{}-{}.npy'.format(ont, data_type), layer_3)
-    np.save('../../embs/33-{}-{}.npy'.format(ont, data_type), layer_4)
-    np.save('../../embs/32-{}-{}.npy'.format(ont, data_type), layer_5)
+    np.save('../embs/36-{}-{}.npy'.format(ont, data_type), layer_1)
+    np.save('../embs/35-{}-{}.npy'.format(ont, data_type), layer_2)
+    np.save('../embs/34-{}-{}.npy'.format(ont, data_type), layer_3)
+    np.save('../embs/33-{}-{}.npy'.format(ont, data_type), layer_4)
+    np.save('../embs/32-{}-{}.npy'.format(ont, data_type), layer_5)
   elif model_name == 't5':
-    np.save('../../embs/24-{}-{}.npy'.format(ont, data_type), layer_1)
-    np.save('../../embs/23-{}-{}.npy'.format(ont, data_type), layer_2)
-    np.save('../../embs/22-{}-{}.npy'.format(ont, data_type), layer_3)
-    np.save('../../embs/21-{}-{}.npy'.format(ont, data_type), layer_4)
-    np.save('../../embs/20-{}-{}.npy'.format(ont, data_type), layer_5)
+    np.save('../embs/24-{}-{}.npy'.format(ont, data_type), layer_1)
+    np.save('../embs/23-{}-{}.npy'.format(ont, data_type), layer_2)
+    np.save('../embs/22-{}-{}.npy'.format(ont, data_type), layer_3)
+    np.save('../embs/21-{}-{}.npy'.format(ont, data_type), layer_4)
+    np.save('../embs/20-{}-{}.npy'.format(ont, data_type), layer_5)
 
 def preprocess(df, subseq=1022):
   prot_list = []

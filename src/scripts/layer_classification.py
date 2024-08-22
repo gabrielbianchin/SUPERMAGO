@@ -16,13 +16,13 @@ tf.config.experimental.set_memory_growth(gpu[0], True)
 @click.option('--layer', '-l', help="Layer (36, 35, 34, 33 or 32 for ESM2 T36) (24, 23, 22, 21, 20 for ProtT5)")
 
 def main(ont, layer):
-  y_train, pos_train = preprocess(df=pd.read_csv('../../base/{}_train.csv'.format(ont)))
-  y_val, pos_val = preprocess(df=pd.read_csv('../../base/{}_val.csv'.format(ont)))
-  y_test, pos_test = preprocess(df=pd.read_csv('../../base/{}_test.csv'.format(ont)))
+  y_train, pos_train = preprocess(df=pd.read_csv('../base/{}_train.csv'.format(ont)))
+  y_val, pos_val = preprocess(df=pd.read_csv('../base/{}_val.csv'.format(ont)))
+  y_test, pos_test = preprocess(df=pd.read_csv('../base/{}_test.csv'.format(ont)))
 
-  X_train = np.load('../../embs/{}-{}-train.npy'.format(layer, ont))
-  X_val = np.load('../../embs/{}-{}-val.npy'.format(layer, ont))
-  X_test = np.load('../../embs/{}-{}-test.npy'.format(layer, ont))
+  X_train = np.load('../embs/{}-{}-train.npy'.format(layer, ont))
+  X_val = np.load('../embs/{}-{}-val.npy'.format(layer, ont))
+  X_test = np.load('../embs/{}-{}-test.npy'.format(layer, ont))
 
   X_train, y_train = protein_embedding(X_train, y_train, pos_train)
   X_val, y_val = protein_embedding(X_val, y_val, pos_val)
@@ -38,13 +38,13 @@ def main(ont, layer):
   es = tf.keras.callbacks.EarlyStopping(patience=5, verbose=1, restore_best_weights=True)
   model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='binary_crossentropy')
   model.fit(X_train, y_train, validation_data=(X_val, y_val), callbacks=[es], verbose=1, epochs=50)
-  model.save('../../models/{}-{}.h5'.format(layer, ont))
+  model.save('../models/{}-{}.h5'.format(layer, ont))
 
   preds_val = model.predict(X_val)
-  np.save('../../preds/{}-{}-val.npy'.format(layer, ont), preds_val)
+  np.save('../preds/{}-{}-val.npy'.format(layer, ont), preds_val)
 
   preds_test = model.predict(X_test)
-  np.save('../../preds/{}-{}-test.npy'.format(layer, ont), preds_test)
+  np.save('../preds/{}-{}-test.npy'.format(layer, ont), preds_test)
 
   del model
   gc.collect()

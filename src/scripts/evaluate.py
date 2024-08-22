@@ -1,13 +1,9 @@
-import numpy as np
 from tqdm import tqdm
-from sklearn.metrics import precision_recall_curve, auc
-from collections import Counter
+import numpy as np
 import math
 
 def propagate_preds(predictions, ontologies_names, ontology):
-
   ont_n = ontologies_names.tolist()
-
   list_of_parents = []
 
   for idx_term in range(len(ont_n)):
@@ -22,53 +18,40 @@ def propagate_preds(predictions, ontologies_names, ontology):
         predictions[idx_protein, idx_parent] = max(predictions[idx_protein, idx_parent], predictions[idx_protein, idx_term])
   return predictions
 
-def evaluate(predictions, ground_truth, ontologies_names, ontology, y):
-
-  predictions = propagate_preds(predictions, ontologies_names, ontology)
-
-  annots = []
-  for i in y:
-    actual = []
-    for j in range(len(i.tolist())):
-      if i[j] == 1:
-        actual.append(ontologies_names[j])
-    annots.append(actual)
-
-  cnt = Counter()
-  for x in annots:
-    cnt.update(x)
-
-  ic = {}
-
-  for go_id, n in cnt.items():
-    if go_id in ontology:
-      parents = ontology[go_id]['parents']
-      if len(parents) == 0:
-        min_n = n
-      else:
-        min_n = min([cnt[x] for x in parents])
-      ic[go_id] = math.log(min_n / n, 2)
-
-  precisions = []
-  recalls = []
-  fmax = -1
+def evaluate(preds, gt, ontologies_names, ontology, ic, root):
+  preds = propagate_preds(preds, ontologies_names, ontology)
+  wfmax = 0
+  fmax = 0
+  fmax_s = 0
   smin = 1e100
-
-  for i in tqdm(range(1, 101)):
-    threshold = i/100
-    p, r = 0, 0
+  pr_arr, rc_arr = [], []
+  for tau in tqdm(np.linspace(0, 1, 101)):
+    wpr, wrc, num_prot_w = 0, 0, 0
+    pr_s, rc_s, num_prot_s = 0, 0, 0
+    pr_n, rc_n, num_prot_n = 0, 0, 0
     ru, mi = 0, 0
-    number_of_proteins = 0
+    for i, pred in enumerate(preds):
+      protein_pred = set(ontologies_names[pred >= tau].tolist())
+      protein_gt = set(ontologies_names[gt[i] == 1].tolist())
 
-    for idx_protein in range(len(predictions)):
-      protein_pred = set(ontologies_names[np.where(predictions[idx_protein, :] >= threshold)[0]].tolist())
-      protein_gt = set(ontologies_names[np.where(ground_truth[idx_protein, :] == 1)[0]].tolist())
+      ic_pred = sum(ic[q] for q in protein_pred)
+      ic_gt = sum(ic[q] for q in protein_gt)
+      ic_intersect = sum(ic[q] for q in protein_pred.intersection(protein_gt))
 
+      # wfmax
+      if ic_pred > 0:
+        num_prot_w += 1
+        wpr += (ic_intersect / ic_pred)
+      if ic_gt > 0:
+        wrc += (ic_intersect / ic_gt)
+
+      # fmax
       if len(protein_pred) > 0:
-        number_of_proteins += 1
-        p += len(protein_pred.intersection(protein_gt)) / len(protein_pred)
-      r += len(protein_pred.intersection(protein_gt)) / len(protein_gt)
+        num_prot_n += 1
+        pr_n += len(protein_pred.intersection(protein_gt)) / len(protein_pred)
+      rc_n += len(protein_pred.intersection(protein_gt)) / len(protein_gt)
 
+      # smin
       tp = protein_pred.intersection(protein_gt)
       fp = protein_pred - tp
       fn = protein_gt - tp
@@ -77,53 +60,83 @@ def evaluate(predictions, ground_truth, ontologies_names, ontology, y):
       for go_id in fn:
         ru += ic[go_id]
 
-    if number_of_proteins > 0:
-      threshold_p = p / number_of_proteins
+      # fmax_s
+      if root in protein_pred:
+        protein_pred.remove(root)
+      protein_gt.remove(root)
+      if len(protein_pred) > 0:
+        num_prot_s += 1
+        pr_s += len(protein_pred.intersection(protein_gt)) / len(protein_pred)
+      if len(protein_gt) > 0:
+        rc_s += len(protein_pred.intersection(protein_gt)) / len(protein_gt)
+
+    # wfmax
+    if num_prot_w > 0:
+      tau_wpr = wpr / num_prot_w
     else:
-      threshold_p = 0
+      tau_wpr = 0
 
-    threshold_r = r / len(predictions)
+    tau_wrc = wrc / len(preds)
 
-    precisions.append(threshold_p)
-    recalls.append(threshold_r)
+    if tau_wrc + tau_wpr > 0:
+      tau_wfmax = (2 * tau_wpr * tau_wrc) / (tau_wpr + tau_wrc)
+      wfmax = max(wfmax, tau_wfmax)
 
-    f1 = 0
-    if threshold_p > 0 or threshold_r > 0:
-      f1 = (2 * threshold_p * threshold_r) / (threshold_p + threshold_r)
+    # fmax
+    if num_prot_n > 0:
+      tau_pr_n = pr_n / num_prot_n
+    else:
+      tau_pr_n = 0
 
-    if f1 > fmax:
-      fmax = f1
+    tau_rc_n = rc_n / len(preds)
 
-    ru = ru / len(predictions)
-    mi = mi / len(predictions)
+    if tau_pr_n + tau_rc_n > 0:
+      tau_fmax = (2 * tau_pr_n * tau_rc_n) / (tau_pr_n + tau_rc_n)
+      fmax = max(fmax, tau_fmax)
 
-    smin_atual = math.sqrt((ru * ru) + (mi * mi))
+    # AuPRC
+    pr_arr.append(tau_pr_n)
+    rc_arr.append(tau_rc_n)
 
-    if smin_atual < smin:
-      smin = smin_atual
+    # smin
+    ru = ru / len(preds)
+    mi = mi / len(preds)
+    smin = min(smin, math.sqrt((ru * ru) + (mi * mi)))
 
-  precisions = np.array(precisions)
-  recalls = np.array(recalls)
-  sorted_index = np.argsort(recalls)
-  recalls = recalls[sorted_index]
-  precisions = precisions[sorted_index]
-  auprc = np.trapz(precisions, recalls)
+    # fmax_s
+    if num_prot_s > 0:
+      tau_pr_s = pr_s / num_prot_s
+    else:
+      tau_pr_s = 0
 
-  new_p = []
-  new_r = []
-  for i in range(1, 101):
-    if len(np.where(recalls >= i/100)[0]) != 0:
-      idx = np.where(recalls >= i/100)[0][0]
-      new_r.append(i/100)
-      new_p.append(max(precisions[idx:]))
+    tau_rc_s = rc_s / len(preds)
 
-  iauprc = np.trapz(new_p, new_r)
+    if tau_pr_s + tau_rc_s > 0:
+      tau_fmax_s = (2 * tau_pr_s * tau_rc_s) / (tau_pr_s + tau_rc_s)
+      fmax_s = max(fmax_s, tau_fmax_s)
 
+  # AuPRC
+  pr_arr = np.array(pr_arr)
+  rc_arr = np.array(rc_arr)
+  sorted_index = np.argsort(rc_arr)
+  rc_arr = rc_arr[sorted_index]
+  pr_arr = pr_arr[sorted_index]
+  auprc = np.trapz(pr_arr, rc_arr)
+
+  # IAuPRC
+  ipr_arr, irc_arr = [], []
+  for tau in np.linspace(0, 1, 101):
+    if len(np.where(rc_arr >= tau)[0]) != 0:
+      idx = np.where(rc_arr >= tau)[0][0]
+      irc_arr.append(tau)
+      ipr_arr.append(max(pr_arr[idx:]))
+  iauprc = np.trapz(ipr_arr, irc_arr)
   print('Fmax:', fmax)
+  print('Fmax*:', fmax_s)
+  print('wFmax:', wfmax)
   print('Smin:', smin)
   print('AuPRC:', auprc)
   print('IAuPRC:', iauprc)
-
 
 def get_ancestors(ontology, term):
   list_of_terms = []
@@ -200,4 +213,3 @@ def generate_ontology(file, specific_space=False, name_specific_space=''):
           ontology[p_id]['children'].append(key)
 
   return ontology
-

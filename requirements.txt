@@ -1,0 +1,8 @@
+pandas==2.2.0
+numpy==1.26.1
+torch==2.0.1+cu117
+transformers==4.30.2
+accelerate==0.21.0
+click==8.1.7
+tqdm==4.66.1
+tensorflow==2.14.1

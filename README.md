@@ -1,15 +1,16 @@
-# SUPER-MAGO: Protein Function Prediction based on Transformers and AutoML
+# SUPERMAGO, SUPERMAGO+ and SUPERMAGO+Web: Protein Function Prediction based on Transformers Embeddings
 
 The paper is under review.
 
 ## Dataset
 The dataset for this work is available [here](https://zenodo.org/records/10982903).
+The IC values used in evaluation is available [here](https://zenodo.org/records/13362841).
 
 ## Models
-Our (fine-tuned) models for each ontology (AutoML) are available [here](https://drive.google.com/drive/folders/1JITfN21nWZX3DYGbi0wDDPwUX4eUuEca?usp=sharing).
+Our layer-base models for each ontology are available [here](https://drive.google.com/drive/folders/1JITfN21nWZX3DYGbi0wDDPwUX4eUuEca?usp=sharing).
 
 ## Predictions
-The predictions of SUPER-MAGO and SUPER-MAGO+ are available [here](https://drive.google.com/drive/folders/1ynayNr_HEC3tNC6sAtXplzpQ9s2xnpdG?usp=sharing).
+The predictions of SUPERMAGO and SUPERMAGO+ are available [here](https://drive.google.com/drive/folders/1ynayNr_HEC3tNC6sAtXplzpQ9s2xnpdG?usp=sharing).
 
 ## Reproducibility
 * Create the folders ```embs```, ```models```, ```predictions```, and ```base```.
